@@ -1,5 +1,5 @@
 homepage: 'https://stape.io/'
-documentation: 'https://github.com/stape-io/spectacle-tag-server'
+documentation: 'https://github.com/stape-io/spectacle-tag'
 versions:
   - sha: 5997407d7b3f9663a5419023bc41d72db9c8c1cf
     changeNotes: Add encoding to Base URL value from user input.
