@@ -8,7 +8,6 @@ This is a **Google Tag Manager Server-Side (s-GTM)** Template for **Spectacle tr
 - **Cookie Management:** Automatically manages the Spectacle **Anonymous ID** (`sp__anon_id`) and **User ID** (`sp__user_id`) cookies for cross-event and cross-request user stitching.
 - **Full Context Inclusion:** Automatically extracts and includes user context like **User-Agent**, **Page/Referrer URL**, **Campaign UTMs**, **Timezone**, and **Locale** from the incoming request data.
 - **Consent Mode Support:** Includes a built-in check for `ad_storage` consent, allowing you to control tag firing based on the user's consent status.
-- **Flexible Logging:** Supports logging to the GTM Console for **Debugging/Preview** mode and offers **optional BigQuery logging** for storing full request/response data.
 - **Flexible Configuration:** Allows passing custom `User Traits`, `Group Traits`, and `Event Properties` via a simple table input in the tag configuration.
 
 ---
@@ -80,18 +79,11 @@ Based on the **Method Type** selected, additional fields will be enabled:
 | :--------------------- | :---- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
 | **Ad Storage Consent** | Radio | `Send data always` | **Required** option aborts the tag if `ad_storage` consent is not given (either via Google Consent Mode or Stape's Data Tag parameter). |
 
-### 5. Logs Settings
-
-| Parameter           | Type  | Default                   | Description                                                            |
-| :------------------ | :---- | :------------------------ | :--------------------------------------------------------------------- |
-| **Log to Console**  | Radio | `Log...debug and preview` | Controls when the full request/response log is sent to the GTM console |
-| **Log to BigQuery** | Radio | `Do not log...`           | Allows enabling persistent logging of all tag data to a BigQuery table |
-
 ---
 
 ## Open Source
 
-The **Spectable by Stape** is developed and maintained by the [Stape Team](https://stape.io/) under the Apache 2.0 license.
+The **Spectacle by Stape** is developed and maintained by the [Stape Team](https://stape.io/) under the Apache 2.0 license.
 
 ### GTM Gallery Status
 🟢 [Listed](https://tagmanager.google.com/gallery/#/owners/stape-io/templates/spectacle-tag)
