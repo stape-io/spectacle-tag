@@ -379,101 +379,6 @@ ___TEMPLATE_PARAMETERS___
         "defaultValue": "optional"
       }
     ]
-  },
-  {
-    "displayName": "Logs Settings",
-    "name": "logsGroup",
-    "groupStyle": "ZIPPY_CLOSED",
-    "type": "GROUP",
-    "subParams": [
-      {
-        "type": "RADIO",
-        "name": "logType",
-        "radioItems": [
-          {
-            "value": "no",
-            "displayValue": "Do not log"
-          },
-          {
-            "value": "debug",
-            "displayValue": "Log to console during debug and preview"
-          },
-          {
-            "value": "always",
-            "displayValue": "Always log to console"
-          }
-        ],
-        "simpleValueType": true,
-        "defaultValue": "debug"
-      }
-    ]
-  },
-  {
-    "displayName": "BigQuery Logs Settings",
-    "name": "bigQueryLogsGroup",
-    "groupStyle": "ZIPPY_CLOSED",
-    "type": "GROUP",
-    "subParams": [
-      {
-        "type": "RADIO",
-        "name": "bigQueryLogType",
-        "radioItems": [
-          {
-            "value": "no",
-            "displayValue": "Do not log to BigQuery"
-          },
-          {
-            "value": "always",
-            "displayValue": "Log to BigQuery"
-          }
-        ],
-        "simpleValueType": true,
-        "defaultValue": "no"
-      },
-      {
-        "type": "GROUP",
-        "name": "logsBigQueryConfigGroup",
-        "groupStyle": "NO_ZIPPY",
-        "subParams": [
-          {
-            "type": "TEXT",
-            "name": "logBigQueryProjectId",
-            "displayName": "BigQuery Project ID",
-            "simpleValueType": true,
-            "help": "Optional.  \u003cbr\u003e\u003cbr\u003e  If omitted, it will be retrieved from the environment variable \u003cI\u003eGOOGLE_CLOUD_PROJECT\u003c/i\u003e where the server container is running. If the server container is running on Google Cloud, \u003cI\u003eGOOGLE_CLOUD_PROJECT\u003c/i\u003e will already be set to the Google Cloud project\u0027s ID."
-          },
-          {
-            "type": "TEXT",
-            "name": "logBigQueryDatasetId",
-            "displayName": "BigQuery Dataset ID",
-            "simpleValueType": true,
-            "valueValidators": [
-              {
-                "type": "NON_EMPTY"
-              }
-            ]
-          },
-          {
-            "type": "TEXT",
-            "name": "logBigQueryTableId",
-            "displayName": "BigQuery Table ID",
-            "simpleValueType": true,
-            "valueValidators": [
-              {
-                "type": "NON_EMPTY"
-              }
-            ]
-          }
-        ],
-        "enablingConditions": [
-          {
-            "paramName": "bigQueryLogType",
-            "paramValue": "always",
-            "type": "EQUALS"
-          }
-        ]
-      }
-    ]
   }
 ]
 
@@ -483,19 +388,16 @@ ___SANDBOXED_JS_FOR_SERVER___
 const sendHttpRequest = require('sendHttpRequest');
 const JSON = require('JSON');
 const getEventData = require('getEventData');
-const getContainerVersion = require('getContainerVersion');
 const getAllEventData = require('getAllEventData');
 const getCookieValues = require('getCookieValues');
 const setCookie = require('setCookie');
 const getRequestHeader = require('getRequestHeader');
-const getTimestampMillis = require('getTimestampMillis');
 const logToConsole = require('logToConsole');
 const generateRandom = require('generateRandom');
 const parseUrl = require('parseUrl');
 const getType = require('getType');
 const makeString = require('makeString');
 const makeInteger = require('makeInteger');
-const BigQuery = require('BigQuery');
 const computeEffectiveTldPlusOne = require('computeEffectiveTldPlusOne');
 const encodeUri = require('encodeUri');
 
@@ -520,7 +422,6 @@ if (url && url.lastIndexOf('https://gtm-msr.appspot.com/', 0) === 0) {
 
 const methodType = data.methodType;
 
-// Execute the appropriate method
 switch (methodType) {
   case 'page':
     handlePage();
@@ -575,44 +476,31 @@ function extractCampaign(url) {
 
 function buildPageContext() {
   const pageLocation = getEventData('page_location') || '';
-  const pageReferrer = getEventData('page_referrer') || '';
-  const pageTitle = getEventData('page_title') || '';
-
   const parsedUrl = parseUrl(pageLocation);
 
   return {
     path: parsedUrl ? parsedUrl.pathname : '',
-    referrer: pageReferrer,
+    referrer: getEventData('page_referrer') || '',
     search: parsedUrl ? parsedUrl.search : '',
-    title: pageTitle,
+    title: getEventData('page_title') || '',
     url: pageLocation
   };
 }
 
 function buildBasePayload(method) {
-  const anonymousId = getOrCreateAnonymousId();
-  const userId = getStoredUserId() || getEventData('user_id') || null;
-
   const pageContext = buildPageContext();
-  const campaign = extractCampaign(pageContext.url);
-
-  const userAgent = getEventData('user_agent') || getRequestHeader('user-agent') || '';
-
-  const timezone = getEventData('ga_session_data.timezone') || getEventData('timezone') || 'UTC';
-
-  const locale = getEventData('language') || getEventData('user_properties.language') || null;
 
   return {
     type: method,
     context: {
-      timezone: timezone,
-      campaign: campaign,
-      userAgent: userAgent,
+      timezone: getEventData('ga_session_data.timezone') || getEventData('timezone') || 'UTC',
+      campaign: extractCampaign(pageContext.url),
+      userAgent: getEventData('user_agent') || getRequestHeader('user-agent') || '',
       page: pageContext,
-      locale: locale
+      locale: getEventData('language') || getEventData('user_properties.language') || null
     },
-    userId: userId,
-    anonymousId: anonymousId,
+    userId: getStoredUserId() || getEventData('user_id') || null,
+    anonymousId: getOrCreateAnonymousId(),
     writeKey: data.workspaceId
   };
 }
@@ -705,7 +593,7 @@ function handleTrack() {
       Name: 'SpectacleServerTag',
       Type: 'Message',
       EventName: payload.type,
-      Message: 'Request was not sent.',
+      Message: '🛑 [ERROR] Request was not sent.',
       Reason: 'No event name provided for track call'
     });
     return data.gtmOnFailure();
@@ -746,7 +634,7 @@ function handleGroup() {
       Name: 'SpectacleServerTag',
       Type: 'Message',
       EventName: payload.type,
-      Message: 'Request was not sent.',
+      Message: '🛑 [ERROR] Request was not sent.',
       Reason: 'No event name provided for group call'
     });
     return data.gtmOnFailure();
@@ -780,26 +668,8 @@ function sendToSpectacle(endpoint, payload) {
     method: 'POST'
   };
 
-  log({
-    Name: 'SpectacleServerTag',
-    Type: 'Request',
-    EventName: payload.type,
-    RequestMethod: 'POST',
-    RequestUrl: url,
-    RequestBody: payload
-  });
-
   sendHttpRequest(url, options, JSON.stringify(payload))
     .then((result) => {
-      log({
-        Name: 'SpectacleServerTag',
-        Type: 'Response',
-        EventName: payload.type,
-        ResponseStatusCode: result.statusCode,
-        ResponseHeaders: result.headers,
-        ResponseBody: result.body
-      });
-
       if (!useOptimisticScenario) {
         if (result.statusCode >= 200 && result.statusCode < 300) {
           data.gtmOnSuccess();
@@ -809,14 +679,6 @@ function sendToSpectacle(endpoint, payload) {
       }
     })
     .catch((error) => {
-      log({
-        Name: 'SpectacleServerTag',
-        Type: 'Message',
-        EventName: payload.type,
-        Message: 'Request failed or timed out.',
-        Reason: JSON.stringify(error)
-      });
-
       if (!useOptimisticScenario) data.gtmOnFailure();
     });
 }
@@ -873,13 +735,7 @@ function getUrl(eventData) {
 }
 
 function getCookieDomain(cookieDomain) {
-  if (cookieDomain) {
-    if (cookieDomain[0] !== '.') {
-      cookieDomain = '.' + cookieDomain;
-    }
-    return cookieDomain;
-  }
-
+  if (cookieDomain) return cookieDomain[0] !== '.' ? '.' + cookieDomain : cookieDomain;
   return (
     computeEffectiveTldPlusOne(getEventData('page_location') || getRequestHeader('referer')) ||
     'auto'
@@ -908,92 +764,9 @@ function isConsentGivenOrNotRequired(data, eventData) {
   return xGaGcs[2] === '1';
 }
 
-function logConsole(dataToLog) {
-  logToConsole(JSON.stringify(dataToLog));
-}
-
 function log(rawDataToLog) {
-  const logDestinationsHandlers = {};
-  if (determinateIsLoggingEnabled()) logDestinationsHandlers.console = logConsole;
-  if (determinateIsLoggingEnabledForBigQuery()) logDestinationsHandlers.bigQuery = logToBigQuery;
-
   rawDataToLog.TraceId = getRequestHeader('trace-id');
-
-  const keyMappings = {
-    // No transformation for Console is needed.
-    bigQuery: {
-      Name: 'tag_name',
-      Type: 'type',
-      TraceId: 'trace_id',
-      EventName: 'event_name',
-      RequestMethod: 'request_method',
-      RequestUrl: 'request_url',
-      RequestBody: 'request_body',
-      ResponseStatusCode: 'response_status_code',
-      ResponseHeaders: 'response_headers',
-      ResponseBody: 'response_body'
-    }
-  };
-
-  for (const logDestination in logDestinationsHandlers) {
-    const handler = logDestinationsHandlers[logDestination];
-    if (!handler) continue;
-
-    const mapping = keyMappings[logDestination];
-    const dataToLog = mapping ? {} : rawDataToLog;
-
-    if (mapping) {
-      for (const key in rawDataToLog) {
-        const mappedKey = mapping[key] || key;
-        dataToLog[mappedKey] = rawDataToLog[key];
-      }
-    }
-
-    handler(dataToLog);
-  }
-}
-
-function logToBigQuery(dataToLog) {
-  const connectionInfo = {
-    projectId: data.logBigQueryProjectId,
-    datasetId: data.logBigQueryDatasetId,
-    tableId: data.logBigQueryTableId
-  };
-
-  dataToLog.timestamp = getTimestampMillis();
-
-  ['request_body', 'response_headers', 'response_body'].forEach((p) => {
-    dataToLog[p] = JSON.stringify(dataToLog[p]);
-  });
-
-  BigQuery.insert(connectionInfo, [dataToLog], { ignoreUnknownValues: true });
-}
-
-function determinateIsLoggingEnabled() {
-  const containerVersion = getContainerVersion();
-  const isDebug = !!(
-    containerVersion &&
-    (containerVersion.debugMode || containerVersion.previewMode)
-  );
-
-  if (!data.logType) {
-    return isDebug;
-  }
-
-  if (data.logType === 'no') {
-    return false;
-  }
-
-  if (data.logType === 'debug') {
-    return isDebug;
-  }
-
-  return data.logType === 'always';
-}
-
-function determinateIsLoggingEnabledForBigQuery() {
-  if (data.bigQueryLogType === 'no') return false;
-  return data.bigQueryLogType === 'always';
+  logToConsole(JSON.stringify(rawDataToLog));
 }
 
 
@@ -1262,77 +1035,6 @@ ___SERVER_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
-  },
-  {
-    "instance": {
-      "key": {
-        "publicId": "read_container_data",
-        "versionId": "1"
-      },
-      "param": []
-    },
-    "isRequired": true
-  },
-  {
-    "instance": {
-      "key": {
-        "publicId": "access_bigquery",
-        "versionId": "1"
-      },
-      "param": [
-        {
-          "key": "allowedTables",
-          "value": {
-            "type": 2,
-            "listItem": [
-              {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "projectId"
-                  },
-                  {
-                    "type": 1,
-                    "string": "datasetId"
-                  },
-                  {
-                    "type": 1,
-                    "string": "tableId"
-                  },
-                  {
-                    "type": 1,
-                    "string": "operation"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
-                    "string": "*"
-                  },
-                  {
-                    "type": 1,
-                    "string": "*"
-                  },
-                  {
-                    "type": 1,
-                    "string": "*"
-                  },
-                  {
-                    "type": 1,
-                    "string": "write"
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "clientAnnotations": {
-      "isEditedByUser": true
-    },
-    "isRequired": true
   }
 ]
 
@@ -1344,4 +1046,8 @@ scenarios: []
 
 ___NOTES___
 
+2026-05-25 Change Notes:
+ - Logging removal.
+
 Created on 10/30/2025, 6:29:59 PM
+

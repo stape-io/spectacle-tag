@@ -1,6 +1,8 @@
 homepage: 'https://stape.io/'
 documentation: 'https://github.com/stape-io/spectacle-tag'
 versions:
+  - sha: 1f11c98e0cf9ef590a2c5064b20d79cc4645146c
+    changeNotes: Logging removal.
   - sha: 5997407d7b3f9663a5419023bc41d72db9c8c1cf
     changeNotes: Add encoding to Base URL value from user input.
   - sha: db50ba4a1256493c08eac13c6b1baa447d2c4c28
